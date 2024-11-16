@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillconnect_app/screens/register_page.dart';
+import 'package:skillconnect_app/screens/home_page.dart'; // Import your home screen
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -71,7 +72,10 @@ class _LoginPageState extends State<LoginPage> {
       // Check if login is successful
       if (userCredential.user != null) {
         // Redirect to the home screen or any other screen after successful login
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
       }
     } on FirebaseAuthException catch (e) {
       // Show error message in case of failure

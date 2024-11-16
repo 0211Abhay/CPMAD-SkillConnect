@@ -30,7 +30,11 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: AuthStateHandler(),
-    );
+      routes: {
+        '/collectionsViewer': (context) => CollectionsViewer(),
+        '/login' :(context) => LoginPage(),
+      },
+    );  
   }
 }
 
