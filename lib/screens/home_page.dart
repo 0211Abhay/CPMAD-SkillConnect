@@ -7,7 +7,7 @@ class HomePage extends StatelessWidget {
 
   // Sign out function
   Future<void> _signOut(BuildContext context) async {
-    try {
+    try { 
       await FirebaseAuth.instance.signOut();  // Sign out the user
       Navigator.pushReplacement(
         context,
