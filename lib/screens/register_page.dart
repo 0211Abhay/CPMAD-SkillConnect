@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:skillconnect_app/screens/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,19 +15,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: RegisterPage(),
-      routes: {
-        '/collectionsViewer': (context) => CollectionsViewerPage(),
-      },
-    );
-  }
-}
-
-class CollectionsViewerPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Collections Viewer')),
-      body: Center(child: Text('Welcome to the Collections Viewer!')),
     );
   }
 }
@@ -120,7 +108,7 @@ class _RegisterPageState extends State<RegisterPage> {
       final String uid = userCredential.user!.uid;
 
       // Step 2: Save additional data to Firestore
-      await FirebaseFirestore.instance.collection('faculty').doc(uid).set({
+      await FirebaseFirestore.instance.collection('Users').doc(uid).set({
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
       });
@@ -132,8 +120,11 @@ class _RegisterPageState extends State<RegisterPage> {
         const SnackBar(content: Text('Registration successful')),
       );
 
-      // Navigate to next page
-      Navigator.pushReplacementNamed(context, '/collectionsViewer');
+      // Navigate to LoginPage on successful registration
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),  // Navigate to LoginPage
+      );
     } catch (e) {
       print("Error occurred during registration: $e");
       ScaffoldMessenger.of(context).showSnackBar(
