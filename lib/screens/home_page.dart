@@ -11,7 +11,7 @@ class HomePage extends StatelessWidget {
       await FirebaseAuth.instance.signOut();  // Sign out the user
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),  // Navigate to LoginPage
+        MaterialPageRoute(builder: (context) =>  LoginPage()),  // Navigate to LoginPage
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
