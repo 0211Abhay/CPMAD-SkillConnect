@@ -120,7 +120,7 @@ class _RegisterPageState extends State<RegisterPage> {
       final String uid = userCredential.user!.uid;
 
       // Step 2: Save additional data to Firestore
-      await FirebaseFirestore.instance.collection('faculty').doc(uid).set({
+      await FirebaseFirestore.instance.collection('Users').doc(uid).set({
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
       });
