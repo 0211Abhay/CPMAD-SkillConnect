@@ -1,8 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:skillconnect_app/collections_viewer.dart';
+
 import 'package:skillconnect_app/firebase_options.dart';
+import 'package:skillconnect_app/screens/home_page.dart';
+import 'package:skillconnect_app/screens/register_page.dart';
 
 import 'screens/login_page.dart';
 
@@ -31,8 +33,8 @@ class MyApp extends StatelessWidget {
       ),
       home: AuthStateHandler(),
       routes: {
-        '/collectionsViewer': (context) => CollectionsViewer(),
         '/login' :(context) => LoginPage(),
+        '/register' :(context) => RegisterPage(),
       },
     );  
   }
@@ -47,7 +49,7 @@ class AuthStateHandler extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         } else if (snapshot.hasData) {
-          return CollectionsViewer();
+          return HomePage();
         } else {
           return LoginPage();
         }
