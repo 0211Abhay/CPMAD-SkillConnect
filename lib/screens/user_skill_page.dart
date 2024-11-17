@@ -72,47 +72,50 @@ class _UserSkillsPageState extends State<UserSkillsPage> {
   }
 
   // Save skills to Firestore and local storage
-  Future<void> _saveSkills() async {
-    if (_firstNameController.text.isEmpty || _lastNameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('First Name and Last Name cannot be empty')),
-      );
-      return;
-    }
-
-    if (_selectedSkills.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one skill')),
-      );
-      return;
-    }
-
-    try {
-      // Update Firestore
-      await FirebaseFirestore.instance.collection('Users').doc(widget.uid).update({
-        'first_name': _firstNameController.text,
-        'last_name': _lastNameController.text,
-        'skills': _selectedSkills, // Skills saved as an array
-        'email': FirebaseAuth.instance.currentUser!.email,
-        'phone': widget.phone,
-      });
-
-      // Save locally using GetStorage
-      box.write('first_name', _firstNameController.text);
-      box.write('last_name', _lastNameController.text);
-      box.write('skills', _selectedSkills);
-
-      // Navigate to the login page after registration
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save skills: $e')),
-      );
-    }
+Future<void> _saveSkills() async {
+  if (_firstNameController.text.isEmpty || _lastNameController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('First Name and Last Name cannot be empty')),
+    );
+    return;
   }
+
+  if (_selectedSkills.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please select at least one skill')),
+    );
+    return;
+  }
+
+  try {
+    // Update Firestore
+    await FirebaseFirestore.instance.collection('Users').doc(widget.uid).update({
+      'first_name': _firstNameController.text,
+      'last_name': _lastNameController.text,
+      'skills': _selectedSkills, // Skills saved as an array
+      'email': FirebaseAuth.instance.currentUser!.email,
+      'phone': widget.phone,
+      'profileCompleted': true, // Set profileCompleted to true
+    });
+  print('Updating document for UID: ${widget.uid}');
+
+    // Save locally using GetStorage
+    box.write('first_name', _firstNameController.text);
+    box.write('last_name', _lastNameController.text);
+    box.write('skills', _selectedSkills);
+    box.write('profileCompleted', true); // Save locally as well
+
+    // Navigate to the login page after registration
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => HomePage()),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to save skills: $e')),
+    );
+  }
+}
 
   // Handle skill search
   void _onSearchChanged(String query) {

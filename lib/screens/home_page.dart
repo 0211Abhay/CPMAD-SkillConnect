@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Add Firestore import
 import 'package:skillconnect_app/screens/login_page.dart';
-import 'package:skillconnect_app/screens/profile_page.dart'; // Import the profile page
+import 'package:skillconnect_app/screens/network_detail_screen.dart';
+import 'package:skillconnect_app/screens/profile_page.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -12,7 +14,28 @@ class _HomePageState extends State<HomePage> {
   String _currentView = 'Chats'; // Possible values: 'Chats', 'Requests', 'Network'
   final List<String> _chats = ['Chat 1', 'Chat 2', 'Chat 3'];
   final List<String> _requests = ['Request 1', 'Request 2', 'Request 3', 'Request 4'];
-  final List<String> _network = ['Network 1', 'Network 2', 'Network 3'];
+  List<Map<String, dynamic>> _network = []; // List to store networks dynamically
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNetworks(); // Load networks on initialization
+  }
+
+  // Function to fetch networks dynamically
+  Future<void> _loadNetworks() async {
+    String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+    FirebaseFirestore.instance
+        .collection('networks')
+        .where('members', arrayContains: currentUserId)
+        .snapshots()
+        .listen((snapshot) {
+      setState(() {
+        _network = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+      });
+    });
+  }
 
   Future<void> _logout() async {
     try {
@@ -29,19 +52,62 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Function to create a new network
+  void _createNetwork() async {
+    TextEditingController networkNameController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Create a Network'),
+          content: TextField(
+            controller: networkNameController,
+            decoration: InputDecoration(hintText: 'Enter Network Name'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                String networkName = networkNameController.text.trim();
+                if (networkName.isNotEmpty) {
+                  // Add network to Firestore
+                  String networkId = FirebaseFirestore.instance.collection('networks').doc().id;
+                  await FirebaseFirestore.instance.collection('networks').doc(networkId).set({
+                    'networkId': networkId,
+                    'name': networkName,
+                    'admin': FirebaseAuth.instance.currentUser!.uid,
+                    'members': [FirebaseAuth.instance.currentUser!.uid],
+                  });
+                  Navigator.pop(context);
+
+                  // Optional: Show confirmation to the user
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Network "$networkName" created successfully!')),
+                  );
+                }
+              },
+              child: Text('Create'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Calculate the screen width
           bool isWideScreen = constraints.maxWidth > 600;
 
           return Container(
             height: MediaQuery.of(context).size.height,
-            decoration: BoxDecoration(
-              color: Colors.blue[800],
-            ),
+            decoration: BoxDecoration(color: Colors.blue[800]),
             child: Column(
               children: [
                 const SizedBox(height: 50),
@@ -98,7 +164,7 @@ class _HomePageState extends State<HomePage> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => ProfilePage()), // Add ProfilePage here
+                              MaterialPageRoute(builder: (context) => ProfilePage()),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -205,7 +271,7 @@ class _HomePageState extends State<HomePage> {
                                     ? _chats[index]
                                     : _currentView == 'Requests'
                                         ? _requests[index]
-                                        : _network[index];
+                                        : _network[index]['name']; // Display network name
                                 return ListTile(
                                   title: Text(
                                     item,
@@ -213,7 +279,16 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   trailing: const Icon(Icons.chevron_right),
                                   onTap: () {
-                                    // Add specific action for each item if needed
+                                     Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NetworkDetailPage(
+          networkId: _network[index]['networkId'],
+          networkName: _network[index]['name'],
+        ),
+      ),
+    );
+  
                                   },
                                 );
                               },
@@ -230,7 +305,7 @@ class _HomePageState extends State<HomePage> {
                                 } else if (_currentView == 'Requests') {
                                   print('Sending a new request');
                                 } else if (_currentView == 'Network') {
-                                  print('Connecting to a new user');
+                                  _createNetwork(); // Create a network
                                 }
                               },
                               child: Text(
@@ -238,7 +313,7 @@ class _HomePageState extends State<HomePage> {
                                     ? 'Start New Chat'
                                     : _currentView == 'Requests'
                                         ? 'Send Request'
-                                        : 'Connect User',
+                                        : 'Create Network',
                               ),
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: Colors.white,

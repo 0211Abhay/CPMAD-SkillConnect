@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get_storage/get_storage.dart'; // Import GetStorage
 import 'package:skillconnect_app/screens/home_page.dart';
 import 'package:skillconnect_app/screens/register_page.dart';
 import 'package:skillconnect_app/screens/user_skill_page.dart';
@@ -18,6 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool isLoading = false;
+  final GetStorage _storage = GetStorage(); // Initialize GetStorage
 
   @override
   void dispose() {
@@ -35,36 +37,45 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _navigateToHomeUp() {
-    Navigator.push(
+  void _navigateToHome() {
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) =>  HomePage(),
+        builder: (context) => HomePage(),
       ),
     );
   }
 
-  // New method to check if the user has completed registration
+  // Check if the user has completed their profile and store data in GetStorage
   Future<void> _checkUserProfile(String userId) async {
-    final userDoc = await FirebaseFirestore.instance.collection('Users').doc(userId).get();
+    final userDoc =
+        await FirebaseFirestore.instance.collection('Users').doc(userId).get();
 
     if (userDoc.exists) {
       final data = userDoc.data();
       if (data != null) {
-        // Check if fields are empty (indicating incomplete registration)
-        bool isIncomplete = data['first_name'] == null || data['last_name'] == null || data['skills'] == null;
-        
-        if (isIncomplete) {
-          // If registration is incomplete, navigate to the registration page
+        // Store user data in GetStorage
+        _storage.write('userId', userId);
+        _storage.write('email', data['email'] ?? '');
+        _storage.write('first_name', data['first_name'] ?? '');
+        _storage.write('last_name', data['last_name'] ?? '');
+        _storage.write('phone', data['phone'] ?? '');
+        _storage.write('profileCompleted', data['profileCompleted'] ?? false);
+        _storage.write('skills', data['skills'] ?? []);
+
+        bool isProfileCompleted = data['profileCompleted'] ?? false;
+
+        if (!isProfileCompleted) {
+          // Navigate to the UserSkillsPage for incomplete profile
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => UserSkillsPage(uid: userId, phone: data["phone"],),
+              builder: (context) => UserSkillsPage(uid: userId, phone: data['phone']),
             ),
           );
         } else {
-          // If registration is complete, navigate to the home page
-          _navigateToHomeUp();
+          // Navigate to HomePage for complete profile
+          _navigateToHome();
         }
       }
     }
@@ -109,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
       // Check if login is successful
       if (userCredential.user != null) {
         String userId = userCredential.user!.uid;
-        // Check if the user's profile is complete
+        // Check if the user's profile is complete and store details in GetStorage
         await _checkUserProfile(userId);
       }
     } on FirebaseAuthException catch (e) {
@@ -206,7 +217,8 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               child: isLoading
                                   ? const CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                     )
                                   : const Text(
                                       'Login',
