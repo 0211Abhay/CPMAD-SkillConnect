@@ -6,10 +6,11 @@ import 'package:get_storage/get_storage.dart';
 import 'package:skillconnect_app/firebase_options.dart';
 import 'package:skillconnect_app/screens/home_page.dart';
 import 'package:skillconnect_app/screens/register_page.dart';
-
+import 'package:skillconnect_app/screens/splash_screen.dart';
 import 'screens/login_page.dart';
+import './screens/splash_screen.dart'; // Import SplashScreen
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Ensure Firebase is initialized with the correct options
@@ -27,34 +28,49 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'SkillConnect',
       theme: ThemeData(
-        
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: AuthStateHandler(),
+      home: const SplashScreen(), // Use AuthStateHandler as the home screen
       routes: {
-        '/login' :(context) => LoginPage(),
-        
-        '/register' :(context) => RegisterPage(),
+        '/auth' :(context) => const AuthStateHandler(),
+        '/login': (context) => const LoginPage(),
+        '/register': (context) => const RegisterPage(),
       },
-    );  
+    );
   }
 }
 
 class AuthStateHandler extends StatelessWidget {
+  const AuthStateHandler({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+    return FutureBuilder(
+      // Wait for Firebase to initialize before showing splash screen
+      future: Firebase.initializeApp(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasData && snapshot.data != null) {
-          return HomePage();
+          // Show splash screen while Firebase is initializing
+          return const SplashScreen();
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
         } else {
-          return LoginPage();
+          // Check authentication state
+          return StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasData && snapshot.data != null) {
+                return  HomePage();  // Navigate to HomePage if logged in
+              } else {
+                return const LoginPage(); // Navigate to LoginPage if not logged in
+              }
+            },
+          );
         }
       },
     );
