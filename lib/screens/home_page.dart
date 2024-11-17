@@ -24,7 +24,7 @@ Future<void> _logout() async {
     // Navigate back to login page and reset navigation stack
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const LoginPage()), // Replace with your login screen widget
+      MaterialPageRoute(builder: (context) =>  LoginPage()), // Replace with your login screen widget
       (route) => false,
     );
   } catch (e) {
