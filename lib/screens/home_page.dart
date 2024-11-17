@@ -20,6 +20,7 @@ Future<void> _logout() async {
     // Invalidate Firebase session
     await FirebaseAuth.instance.signOut();
 
+
     // Clear shared preferences or any other local session data
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -35,6 +36,7 @@ Future<void> _logout() async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Logout failed: ${e.toString()}')),
     );
+
   }
 }
 
