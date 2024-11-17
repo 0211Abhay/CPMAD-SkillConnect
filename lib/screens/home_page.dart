@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillconnect_app/screens/login_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
@@ -12,6 +12,26 @@ class _HomePageState extends State<HomePage> {
   String _currentView = 'Chats'; // Possible values: 'Chats', 'Requests', 'Network'
   final List<String> _chats = ['Chat 1', 'Chat 2', 'Chat 3'];
   final List<String> _requests = ['Request 1', 'Request 2', 'Request 3', 'Request 4'];
+
+  final List<String> _network = ['Network 1', 'Network 2', 'Network 3'];
+
+
+Future<void> _logout() async {
+  try {
+    // Invalidate Firebase session
+    await FirebaseAuth.instance.signOut();
+    
+      
+
+    // Navigate back to login page and reset navigation stack
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()), // Replace with your login screen widget
+      (route) => false,
+    );
+  } catch (e) {
+    // Show an error message if logout fails
+
   final List<String> _network = ['User 1', 'User 2', 'User 3'];
 
   Future<void> _logout() async {
@@ -31,12 +51,12 @@ class _HomePageState extends State<HomePage> {
     );
   } catch (e) {
     // Display error message
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Logout failed: ${e.toString()}')),
     );
   }
 }
-
 
 
   @override

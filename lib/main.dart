@@ -34,6 +34,7 @@ class MyApp extends StatelessWidget {
       home: AuthStateHandler(),
       routes: {
         '/login' :(context) => LoginPage(),
+        
         '/register' :(context) => RegisterPage(),
       },
     );  
@@ -47,14 +48,13 @@ class AuthStateHandler extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasData && snapshot.data != null) {
           return HomePage();
         } else {
           return LoginPage();
         }
       },
-
     );
   }
 }

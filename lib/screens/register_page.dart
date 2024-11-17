@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:skillconnect_app/screens/login_page.dart';
+
+import 'user_skill_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -97,36 +98,31 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      print("Starting registration...");
       // Step 1: Register the user with Firebase Authentication
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      print("User registered successfully.");
       final String uid = userCredential.user!.uid;
 
-      // Step 2: Save additional data to Firestore
+      // Step 2: Save additional data (email, phone) to Firestore
       await FirebaseFirestore.instance.collection('Users').doc(uid).set({
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
       });
 
-      print("Data saved to Firestore.");
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration successful')),
-      );
-
-      // Navigate to LoginPage on successful registration
+      // Step 3: Redirect to the Skills page with user UID and phone number
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) =>  LoginPage()),  // Navigate to LoginPage
+        MaterialPageRoute(
+          builder: (context) => UserSkillsPage(
+            uid: uid,
+            phone: _phoneController.text.trim(),
+          ),
+        ),
       );
     } catch (e) {
-      print("Error occurred during registration: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Registration failed: ${e.toString()}')),
       );
@@ -134,7 +130,6 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() {
         isLoading = false;
       });
-      print("Registration process completed.");
     }
   }
 
@@ -243,7 +238,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             width: double.infinity,
                             height: 48,
                             child: ElevatedButton(
-                              onPressed: isLoading ? null : _register,  // Button is disabled when loading
+                              onPressed: isLoading ? null : _register,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue[800],
                                 shape: RoundedRectangleBorder(
@@ -251,33 +246,11 @@ class _RegisterPageState extends State<RegisterPage> {
                                 ),
                               ),
                               child: isLoading
-                                  ? const Text(
-                                      'Creating Account...',  // Display loading text instead of a spinner
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Create Account',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.white,
-                                      ),
-                                    ),
+                                  ? const Text('Creating Account...')
+                                  : const Text('Create Account'),
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('Already have an Account? '),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Login'),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),
