@@ -14,30 +14,30 @@ class _HomePageState extends State<HomePage> {
   final List<String> _requests = ['Request 1', 'Request 2', 'Request 3', 'Request 4'];
   final List<String> _network = ['User 1', 'User 2', 'User 3'];
 
-  Future<void> _logout() async {
-  try {
-    // Sign out from Firebase
-    await FirebaseAuth.instance.signOut();
 
-    // Clear shared preferences
+Future<void> _logout() async {
+  try {
+    // Invalidate Firebase session
+    await FirebaseAuth.instance.signOut();
+    
+    // Clear shared preferences or any other local session data
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
-    // Navigate to the login page and reset the entire navigation stack
+    // Navigate back to login page and reset navigation stack
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
+      MaterialPageRoute(builder: (context) => const LoginPage()), // Replace with your login screen widget
       (route) => false,
     );
   } catch (e) {
-    // Display error message
+    // Show an error message if logout fails
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Logout failed: ${e.toString()}')),
     );
   }
 }
-
-
 
   @override
   Widget build(BuildContext context) {
