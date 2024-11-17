@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skillconnect_app/screens/login_page.dart';
+import 'package:skillconnect_app/screens/profile_page.dart'; // Import the profile page
+
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
@@ -13,27 +14,20 @@ class _HomePageState extends State<HomePage> {
   final List<String> _requests = ['Request 1', 'Request 2', 'Request 3', 'Request 4'];
   final List<String> _network = ['Network 1', 'Network 2', 'Network 3'];
 
-
-Future<void> _logout() async {
-  try {
-    // Invalidate Firebase session
-    await FirebaseAuth.instance.signOut();
-    
-      
-
-    // Navigate back to login page and reset navigation stack
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()), // Replace with your login screen widget
-      (route) => false,
-    );
-  } catch (e) {
-    // Show an error message if logout fails
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Logout failed: ${e.toString()}')),
-    );
+  Future<void> _logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+        (route) => false,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Logout failed: ${e.toString()}')),
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -60,40 +54,59 @@ Future<void> _logout() async {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Logout'),
-                          content: const Text('Are you sure you want to log out?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text('Logout'),
-                            ),
-                          ],
+                Row(
+                  children: [
+                    ElevatedButton(
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Logout'),
+                            content: const Text('Are you sure you want to log out?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Logout'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          _logout();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      );
-                      if (confirm == true) {
-                        _logout();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
                       ),
+                      child: const Text('Logout'),
                     ),
-                    child: const Text('Logout'),
-                  ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Navigate to the ProfilePage
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => ProfilePage()), // Add ProfilePage here
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('View Profile'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -115,6 +128,7 @@ Future<void> _logout() async {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
+                          // Chats Button
                           ElevatedButton(
                             onPressed: () {
                               setState(() {
@@ -131,6 +145,7 @@ Future<void> _logout() async {
                               minimumSize: const Size(120, 48),
                             ),
                           ),
+                          // Requests Button
                           ElevatedButton(
                             onPressed: () {
                               setState(() {
@@ -147,6 +162,7 @@ Future<void> _logout() async {
                               minimumSize: const Size(120, 48),
                             ),
                           ),
+                          // Network Button
                           ElevatedButton(
                             onPressed: () {
                               setState(() {
@@ -193,6 +209,7 @@ Future<void> _logout() async {
                         ),
                       ),
                       const SizedBox(height: 20),
+                      // Action Button with similar styling
                       SizedBox(
                         width: double.infinity,
                         height: 48,

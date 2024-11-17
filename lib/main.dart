@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 
 import 'package:skillconnect_app/firebase_options.dart';
 import 'package:skillconnect_app/screens/home_page.dart';
@@ -15,6 +16,7 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,  // Pass the correct platform-specific options
   );
+  await GetStorage.init(); // Initialize GetStorage
 
   runApp(const MyApp());
 }

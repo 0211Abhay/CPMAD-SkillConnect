@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-
+import 'package:get_storage/get_storage.dart'; // Import GetStorage
 import 'user_skill_page.dart';
+import 'login_page.dart'; // Import your LoginPage
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // Ensure Firebase is initialized
+  await Firebase.initializeApp(); // Initialize Firebase
+  await GetStorage.init(); // Initialize GetStorage
   runApp(MyApp());
 }
 
@@ -21,10 +23,12 @@ class MyApp extends StatelessWidget {
 }
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({Key? key}) : super(key: key);
+  final String? uid;
+
+  const RegisterPage({Key? key, this.uid}) : super(key: key);
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  _RegisterPageState createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
@@ -33,9 +37,16 @@ class _RegisterPageState extends State<RegisterPage> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final box = GetStorage(); // Instance of GetStorage
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserDataIfExists();
+  }
 
   @override
   void dispose() {
@@ -44,6 +55,27 @@ class _RegisterPageState extends State<RegisterPage> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  // Fetch user data for pre-fill if registration is incomplete
+  Future<void> _fetchUserDataIfExists() async {
+    if (widget.uid != null) {
+      try {
+        final userDoc = await FirebaseFirestore.instance.collection('Users').doc(widget.uid).get();
+
+        if (userDoc.exists) {
+          final data = userDoc.data()!;
+          setState(() {
+            _emailController.text = data['email'] ?? '';
+            _phoneController.text = data['phone'] ?? '';
+          });
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching user data: $e')),
+        );
+      }
+    }
   }
 
   // Validation methods
@@ -110,9 +142,15 @@ class _RegisterPageState extends State<RegisterPage> {
       await FirebaseFirestore.instance.collection('Users').doc(uid).set({
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
+        'profileCompleted': false, // Add profileCompleted flag for later
       });
 
-      // Step 3: Redirect to the Skills page with user UID and phone number
+      // Step 3: Save user data locally using GetStorage
+      box.write('uid', uid);
+      box.write('email', _emailController.text.trim());
+      box.write('phone', _phoneController.text.trim());
+
+      // Step 4: Navigate to the next page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -123,6 +161,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       );
     } catch (e) {
+      // Catch Firebase errors and display message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Registration failed: ${e.toString()}')),
       );
@@ -240,17 +279,51 @@ class _RegisterPageState extends State<RegisterPage> {
                             child: ElevatedButton(
                               onPressed: isLoading ? null : _register,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue[800],
+                                backgroundColor: Colors.blue[800], // Primary button color
+                                foregroundColor: Colors.white, // Button text color
+                                elevation: 4, // Add slight shadow
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(8), // Rounded corners
                                 ),
+                                padding: const EdgeInsets.all(12), // Padding inside the button
                               ),
                               child: isLoading
-                                  ? const Text('Creating Account...')
-                                  : const Text('Create Account'),
+                                  ? const CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    )
+                                  : const Text(
+                                      'Create Account',
+                                      style: TextStyle(
+                                        fontSize: 16, // Font size for the button text
+                                        fontWeight: FontWeight.w600, // Semi-bold text
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('Already have an account?'),
+                              TextButton(
+                                onPressed: () {
+                                  // Navigate to login page
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => LoginPage(), // Your LoginPage widget
+                                    ),
+                                  );
+                                },
+                                child: const Text(
+                                  'Log in',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),

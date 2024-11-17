@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skillconnect_app/screens/home_page.dart';
 import 'package:skillconnect_app/screens/register_page.dart';
+import 'package:skillconnect_app/screens/user_skill_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -41,7 +43,33 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-  
+
+  // New method to check if the user has completed registration
+  Future<void> _checkUserProfile(String userId) async {
+    final userDoc = await FirebaseFirestore.instance.collection('Users').doc(userId).get();
+
+    if (userDoc.exists) {
+      final data = userDoc.data();
+      if (data != null) {
+        // Check if fields are empty (indicating incomplete registration)
+        bool isIncomplete = data['first_name'] == null || data['last_name'] == null || data['skills'] == null;
+        
+        if (isIncomplete) {
+          // If registration is incomplete, navigate to the registration page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UserSkillsPage(uid: userId, phone: data["phone"],),
+            ),
+          );
+        } else {
+          // If registration is complete, navigate to the home page
+          _navigateToHomeUp();
+        }
+      }
+    }
+  }
+
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Email is required';
@@ -80,8 +108,9 @@ class _LoginPageState extends State<LoginPage> {
 
       // Check if login is successful
       if (userCredential.user != null) {
-        // Redirect to the home screen or any other screen after successful login
-        _navigateToHomeUp();
+        String userId = userCredential.user!.uid;
+        // Check if the user's profile is complete
+        await _checkUserProfile(userId);
       }
     } on FirebaseAuthException catch (e) {
       // Show error message in case of failure
