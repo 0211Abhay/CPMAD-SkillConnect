@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
       home: AuthStateHandler(),
       routes: {
         '/login' :(context) => LoginPage(),
-        '/home': (context) => HomePage(),
+        
         '/register' :(context) => RegisterPage(),
       },
     );  

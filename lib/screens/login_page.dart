@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:skillconnect_app/screens/home_page.dart';
 import 'package:skillconnect_app/screens/register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -32,6 +33,15 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  void _navigateToHomeUp() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>  HomePage(),
+      ),
+    );
+  }
+  
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Email is required';
@@ -71,7 +81,7 @@ class _LoginPageState extends State<LoginPage> {
       // Check if login is successful
       if (userCredential.user != null) {
         // Redirect to the home screen or any other screen after successful login
-        Navigator.pushReplacementNamed(context, '/home');
+        _navigateToHomeUp();
       }
     } on FirebaseAuthException catch (e) {
       // Show error message in case of failure
