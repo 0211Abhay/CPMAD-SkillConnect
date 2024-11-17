@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get_storage/get_storage.dart'; // Import GetStorage
+import 'package:lottie/lottie.dart'; // Import Lottie
 import 'package:skillconnect_app/screens/home_page.dart';
 import 'package:skillconnect_app/screens/register_page.dart';
 import 'package:skillconnect_app/screens/user_skill_page.dart';
@@ -46,7 +47,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // Check if the user has completed their profile and store data in GetStorage
   Future<void> _checkUserProfile(String userId) async {
     final userDoc =
         await FirebaseFirestore.instance.collection('Users').doc(userId).get();
@@ -54,7 +54,6 @@ class _LoginPageState extends State<LoginPage> {
     if (userDoc.exists) {
       final data = userDoc.data();
       if (data != null) {
-        // Store user data in GetStorage
         _storage.write('userId', userId);
         _storage.write('email', data['email'] ?? '');
         _storage.write('first_name', data['first_name'] ?? '');
@@ -66,15 +65,14 @@ class _LoginPageState extends State<LoginPage> {
         bool isProfileCompleted = data['profileCompleted'] ?? false;
 
         if (!isProfileCompleted) {
-          // Navigate to the UserSkillsPage for incomplete profile
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => UserSkillsPage(uid: userId, phone: data['phone']),
+              builder: (context) =>
+                  UserSkillsPage(uid: userId, phone: data['phone']),
             ),
           );
         } else {
-          // Navigate to HomePage for complete profile
           _navigateToHome();
         }
       }
@@ -110,21 +108,17 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // Firebase authentication login
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // Check if login is successful
       if (userCredential.user != null) {
         String userId = userCredential.user!.uid;
-        // Check if the user's profile is complete and store details in GetStorage
         await _checkUserProfile(userId);
       }
     } on FirebaseAuthException catch (e) {
-      // Show error message in case of failure
       String errorMessage = e.message ?? 'Login failed';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage)),
@@ -216,9 +210,8 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ),
                               child: isLoading
-                                  ? const CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
+                                  ? Lottie.asset(
+                                      'lottie/loader.json',
                                     )
                                   : const Text(
                                       'Login',

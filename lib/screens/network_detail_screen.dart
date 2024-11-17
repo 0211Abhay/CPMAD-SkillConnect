@@ -3,8 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class NetworkDetailPage extends StatefulWidget {
-  final String networkId; // ID of the selected network
-  final String networkName; // Name of the network
+  final String networkId;
+  final String networkName;
 
   NetworkDetailPage({required this.networkId, required this.networkName});
 
@@ -13,134 +13,162 @@ class NetworkDetailPage extends StatefulWidget {
 }
 
 class _NetworkDetailPageState extends State<NetworkDetailPage> {
-  late List<String> members;
+  List<DocumentSnapshot> _users = []; // List of users from Firestore
+  List<Map<String, dynamic>> _inviteRequests = []; // Store invite requests
 
   @override
   void initState() {
     super.initState();
-    _fetchMembers();
+    _loadUsers(); // Load registered users from Firestore
+    _loadInviteRequests(); // Load any pending invite requests
   }
 
-  // Fetch members of the selected network
-  Future<void> _fetchMembers() async {
-    DocumentSnapshot networkDoc = await FirebaseFirestore.instance
-        .collection('networks')
-        .doc(widget.networkId)
+  // Function to load users from Firestore
+  Future<void> _loadUsers() async {
+    final userCollection = FirebaseFirestore.instance.collection('users');
+    final querySnapshot = await userCollection.get();
+
+    setState(() {
+      _users = querySnapshot.docs;
+    });
+  }
+
+  // Function to load invite requests for the current network
+  Future<void> _loadInviteRequests() async {
+    final inviteRequestCollection = FirebaseFirestore.instance.collection('inviteRequests');
+    final querySnapshot = await inviteRequestCollection
+        .where('networkId', isEqualTo: widget.networkId)
         .get();
 
     setState(() {
-      members = List<String>.from(networkDoc['members']);
+      _inviteRequests = querySnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
     });
   }
 
-  // Remove a member from the network
-  Future<void> _kickMember(String memberId) async {
-    try {
-      await FirebaseFirestore.instance.collection('networks').doc(widget.networkId).update({
-        'members': FieldValue.arrayRemove([memberId]),
-      });
-      setState(() {
-        members.remove(memberId);
-      });
+  // Function to send an invite to a user
+  Future<void> _sendInvite(String userId) async {
+    // Check if the user has already been invited or is already a member
+    final inviteRequestCollection = FirebaseFirestore.instance.collection('inviteRequests');
+    final existingInvite = await inviteRequestCollection
+        .where('userId', isEqualTo: userId)
+        .where('networkId', isEqualTo: widget.networkId)
+        .get();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Member removed successfully!')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to remove member: ${e.toString()}')),
-      );
+    if (existingInvite.docs.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('User is already invited or a member!')));
+      return;
     }
-  }
 
-  // Generate an invite link for the network
-  void _generateInviteLink() async {
-    String inviteId = FirebaseFirestore.instance.collection('invitations').doc().id;
-    await FirebaseFirestore.instance.collection('invitations').doc(inviteId).set({
-      'invitationId': inviteId,
+    // Create the invite request document
+    await inviteRequestCollection.add({
       'networkId': widget.networkId,
-      'sender': FirebaseAuth.instance.currentUser!.uid,
-      'used': false,
+      'userId': userId,
+      'status': 'pending', // The request is initially pending
     });
 
-    String inviteLink = 'https://yourapp.com/invite?inviteId=$inviteId';
-    print('Invite Link: $inviteLink');
-    // You can share the invite link via email, chat, etc.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Invite link generated: $inviteLink')),
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invite sent!')));
+  }
+
+  // Function to accept an invite
+  Future<void> _acceptInvite(String userId) async {
+    // Update the invite request status to 'accepted'
+    final inviteRequestCollection = FirebaseFirestore.instance.collection('inviteRequests');
+    final inviteQuery = await inviteRequestCollection
+        .where('userId', isEqualTo: userId)
+        .where('networkId', isEqualTo: widget.networkId)
+        .get();
+
+    if (inviteQuery.docs.isEmpty) return;
+
+    // Get the invite document and update the status
+    final inviteDoc = inviteQuery.docs.first;
+    await inviteDoc.reference.update({'status': 'accepted'});
+
+    // Add the user to the network
+    final networkCollection = FirebaseFirestore.instance.collection('networks');
+    await networkCollection.doc(widget.networkId).update({
+      'members': FieldValue.arrayUnion([userId]),
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('You have joined the network!')));
+  }
+
+  // Function to reject an invite
+  Future<void> _rejectInvite(String userId) async {
+    // Update the invite request status to 'rejected'
+    final inviteRequestCollection = FirebaseFirestore.instance.collection('inviteRequests');
+    final inviteQuery = await inviteRequestCollection
+        .where('userId', isEqualTo: userId)
+        .where('networkId', isEqualTo: widget.networkId)
+        .get();
+
+    if (inviteQuery.docs.isEmpty) return;
+
+    final inviteDoc = inviteQuery.docs.first;
+    await inviteDoc.reference.update({'status': 'rejected'});
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invite rejected')));
+  }
+
+  // Function to display user details
+  Widget _buildUserList() {
+    return ListView.builder(
+      itemCount: _users.length,
+      itemBuilder: (context, index) {
+        final user = _users[index].data() as Map<String, dynamic>;
+        final userId = _users[index].id;
+
+        // Check if the user is already in the network or has a pending invite
+        final hasPendingInvite = _inviteRequests.any((request) =>
+            request['userId'] == userId &&
+            request['status'] == 'pending');
+
+        final isMember = user['networks']?.contains(widget.networkId) ?? false;
+
+        return ListTile(
+          title: Text(user['name']),
+          subtitle: Text(isMember ? 'Already a member' : hasPendingInvite ? 'Invite pending' : 'Invite to join'),
+          trailing: isMember
+              ? null
+              : hasPendingInvite
+                  ? null
+                  : ElevatedButton(
+                      onPressed: () => _sendInvite(userId),
+                      child: Text('Invite'),
+                    ),
+        );
+      },
     );
   }
 
-  // Accept the invitation and join the network
-  Future<void> _acceptInvite(String inviteId) async {
-    DocumentSnapshot inviteDoc = await FirebaseFirestore.instance.collection('invitations').doc(inviteId).get();
-    if (inviteDoc.exists && !(inviteDoc['used'] as bool)) {
-      String networkId = inviteDoc['networkId'];
-      String userId = FirebaseAuth.instance.currentUser!.uid;
+  // Function to display pending invite requests
+  Widget _buildInviteRequests() {
+    return ListView.builder(
+      itemCount: _inviteRequests.length,
+      itemBuilder: (context, index) {
+        final request = _inviteRequests[index];
+        final userId = request['userId'];
+        final status = request['status'];
+        final userName = _users.firstWhere((user) => user.id == userId)['name'];
 
-      // Add user to the network
-      await FirebaseFirestore.instance.collection('networks').doc(networkId).update({
-        'members': FieldValue.arrayUnion([userId]),
-      });
-
-      // Mark invitation as used
-      await FirebaseFirestore.instance.collection('invitations').doc(inviteId).update({'used': true});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Successfully joined the network!')),
-      );
-    } else {
-      print('Invalid or already used invitation');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid or expired invitation')),
-      );
-    }
-  }
-
-  // Add a new member to the network
-  Future<void> _inviteMember() async {
-    TextEditingController memberEmailController = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Invite Member'),
-          content: TextField(
-            controller: memberEmailController,
-            decoration: InputDecoration(hintText: 'Enter email/ID of the user'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                String newMemberId = memberEmailController.text.trim();
-                if (newMemberId.isNotEmpty) {
-                  try {
-                    await FirebaseFirestore.instance.collection('networks').doc(widget.networkId).update({
-                      'members': FieldValue.arrayUnion([newMemberId]),
-                    });
-
-                    setState(() {
-                      members.add(newMemberId);
-                    });
-
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Member invited successfully!')),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to invite member: ${e.toString()}')),
-                    );
-                  }
-                }
-              },
-              child: Text('Invite'),
-            ),
-          ],
+        return ListTile(
+          title: Text(userName),
+          subtitle: Text('Status: $status'),
+          trailing: status == 'pending'
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.check),
+                      onPressed: () => _acceptInvite(userId),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close),
+                      onPressed: () => _rejectInvite(userId),
+                    ),
+                  ],
+                )
+              : null,
         );
       },
     );
@@ -149,39 +177,14 @@ class _NetworkDetailPageState extends State<NetworkDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.networkName),
-      ),
+      appBar: AppBar(title: Text(widget.networkName)),
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemCount: members.length,
-              itemBuilder: (context, index) {
-                String member = members[index];
-                return ListTile(
-                  title: Text(member),
-                  trailing: IconButton(
-                    icon: Icon(Icons.remove_circle, color: Colors.red),
-                    onPressed: () => _kickMember(member),
-                  ),
-                );
-              },
-            ),
+            child: _buildUserList(),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: _inviteMember,
-              child: Text('Invite Member'),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: _generateInviteLink, // Button to generate invite link
-              child: Text('Generate Invite Link'),
-            ),
+          Expanded(
+            child: _buildInviteRequests(),
           ),
         ],
       ),

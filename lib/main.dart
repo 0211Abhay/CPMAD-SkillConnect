@@ -57,7 +57,7 @@ class AuthStateHandler extends StatelessWidget {
           return const SplashScreen();
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
-        } else {
+        } else { 
           // Check authentication state
           return StreamBuilder<User?>(
             stream: FirebaseAuth.instance.authStateChanges(),

@@ -23,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Image.asset('lib/assets/img/SkillConnect_logo.jpg'), // Display splash image
+        child: Image.asset('lib/assets/img/SkillConnect_logo.jpeg'), // Display splash image
       ),
     );
   }
