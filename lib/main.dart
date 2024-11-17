@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 
 import 'package:skillconnect_app/firebase_options.dart';
 import 'package:skillconnect_app/screens/home_page.dart';
@@ -15,6 +16,7 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,  // Pass the correct platform-specific options
   );
+  await GetStorage.init(); // Initialize GetStorage
 
   runApp(const MyApp());
 }
@@ -34,6 +36,7 @@ class MyApp extends StatelessWidget {
       home: AuthStateHandler(),
       routes: {
         '/login' :(context) => LoginPage(),
+        
         '/register' :(context) => RegisterPage(),
       },
     );  
@@ -47,14 +50,13 @@ class AuthStateHandler extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasData && snapshot.data != null) {
           return HomePage();
         } else {
           return LoginPage();
         }
       },
-
     );
   }
 }
