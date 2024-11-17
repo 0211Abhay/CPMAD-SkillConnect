@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillconnect_app/screens/register_page.dart';
-import 'package:skillconnect_app/screens/home_page.dart';
-import 'user_skill_page.dart'; // Import your home screen
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -55,25 +53,21 @@ class _LoginPageState extends State<LoginPage> {
     return null;
   }
 
-Future<void> _login() async {
-  if (!_formKey.currentState!.validate()) return;
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() {
-    isLoading = true;
-  });
+    setState(() {
+      isLoading = true;
+    });
 
-  try {
-    // Firebase authentication login
-    UserCredential userCredential = await FirebaseAuth.instance
-        .signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
-    // Navigate to HomePage if login is successful
-    if (userCredential.user != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const UserSkillsPage()),
+    try {
+      // Firebase authentication login
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
       // Check if login is successful
       if (userCredential.user != null) {
         // Redirect to the home screen or any other screen after successful login
@@ -85,19 +79,12 @@ Future<void> _login() async {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage)),
       );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
-  } on FirebaseAuthException catch (e) {
-    // Show error message if login fails
-    String errorMessage = e.message ?? 'Login failed';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(errorMessage)),
-    );
-  } finally {
-    setState(() {
-      isLoading = false;
-    });
   }
-}
 
   @override
   Widget build(BuildContext context) {
