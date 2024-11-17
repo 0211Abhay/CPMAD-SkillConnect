@@ -1,54 +1,34 @@
-import 'package:flutter/material.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
+import 'login_page.dart';
 
 class UserSkillsPage extends StatefulWidget {
-  const UserSkillsPage({Key? key}) : super(key: key);
+  final String uid;
+  final String phone;
+
+  const UserSkillsPage({Key? key, required this.uid, required this.phone})
+      : super(key: key);
 
   @override
-  State<UserSkillsPage> createState() => _UserSkillsPageState();
+  _UserSkillsPageState createState() => _UserSkillsPageState();
 }
 
 class _UserSkillsPageState extends State<UserSkillsPage> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final List<String> skills = [
-  'HTML',
-  'CSS',
-  'Flutter',
-  'Blockchain',
-  'Machine Learning (ML)',
-  'Android Development',
-  'Java',
-  'JavaScript',
-  'Python',
-  'C#',
-  'Go',
-  'Ruby',
-  'Cloud Computing',
-  'Docker',
-  'Kubernetes',
-  'DevOps',
-  'AI/Deep Learning',
-  'ReactJS',
-  'NodeJS',
-  'SQL/Database Management',
-  'Cybersecurity',
-  'Big Data',
-  'Swift (iOS Development)',
-  'TypeScript',
-  'Firebase',
-  '3D Modeling',
-  '3D Designing',
-  'Game Development (Unity/Unreal Engine)',
-  'AR/VR Development',
-  'UI/UX Design',
-  'Data Science',
-  'Robotics',
-  'Embedded Systems',
-  'Digital Marketing & SEO',
-  'Computer Vision',
-];
-
+    'HTML', 'CSS', 'Flutter', 'Blockchain', 'Machine Learning (ML)', 
+    'Android Development', 'Java', 'JavaScript', 'Python', 'C#', 'Go', 
+    'Ruby', 'Cloud Computing', 'Docker', 'Kubernetes', 'DevOps', 
+    'AI/Deep Learning', 'ReactJS', 'NodeJS', 'SQL/Database Management', 
+    'Cybersecurity', 'Big Data', 'Swift (iOS Development)', 'TypeScript', 
+    'Firebase', '3D Modeling', '3D Designing', 'Game Development (Unity/Unreal Engine)', 
+    'AR/VR Development', 'UI/UX Design', 'Data Science', 'Robotics', 
+    'Embedded Systems', 'Digital Marketing & SEO', 'Computer Vision',
+  ];
   final List<String> _selectedSkills = [];
   String _searchQuery = '';
 
@@ -59,124 +39,80 @@ class _UserSkillsPageState extends State<UserSkillsPage> {
     super.dispose();
   }
 
-  Future<void> _saveToFirestore() async {
-    final String firstName = _firstNameController.text.trim();
-    final String lastName = _lastNameController.text.trim();
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+  }
 
-    if (firstName.isEmpty || lastName.isEmpty || _selectedSkills.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All fields are required!')),
-      );
-      return;
-    }
-
+  Future<void> _saveSkills() async {
     try {
-      await FirebaseFirestore.instance.collection('User_skill').add({
-        'firstName': firstName,
-        'lastName': lastName,
+      await FirebaseFirestore.instance.collection('Users').doc(widget.uid).update({
+        'first_name': _firstNameController.text,
+        'last_name': _lastNameController.text,
         'skills': _selectedSkills,
+        'email': FirebaseAuth.instance.currentUser!.email,
+        'phone': widget.phone,
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data saved successfully!')));
-
-      // Clear the form
-      _firstNameController.clear();
-      _lastNameController.clear();
-      setState(() {
-        _selectedSkills.clear();
-        _searchQuery = '';
-      });
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving data: $e')),
+        SnackBar(content: Text('Failed to save skills: $e')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredSkills = skills
-        .where((skill) => skill.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('User Skills'),
-      ),
+      appBar: AppBar(title: const Text('Enter Your Skills')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // First Name Field
-            TextField(
-              controller: _firstNameController,
-              decoration: const InputDecoration(
-                labelText: 'First Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
+            const Text('First Name:'),
+            TextField(controller: _firstNameController),
             const SizedBox(height: 16),
-
-            // Last Name Field
-            TextField(
-              controller: _lastNameController,
-              decoration: const InputDecoration(
-                labelText: 'Last Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
+            const Text('Last Name:'),
+            TextField(controller: _lastNameController),
             const SizedBox(height: 16),
-
-            // Skills Section
-            const Text(
-              'Skills',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-
-            // Search Bar for Skills
+            const Text('Skills (select multiple):'),
             TextField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
               decoration: const InputDecoration(
-                labelText: 'Search Skills',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+                hintText: 'Search for skills...',
               ),
+              onChanged: _onSearchChanged,
             ),
-            const SizedBox(height: 16),
-
-            // Skills List
             Expanded(
-              child: ListView.builder(
-                itemCount: filteredSkills.length,
-                itemBuilder: (context, index) {
-                  final skill = filteredSkills[index];
+              child: ListView(
+                children: skills.where((skill) {
+                  return skill.toLowerCase().contains(_searchQuery.toLowerCase());
+                }).map((skill) {
                   return CheckboxListTile(
                     title: Text(skill),
                     value: _selectedSkills.contains(skill),
-                    onChanged: (bool? value) {
+                    onChanged: (bool? selected) {
                       setState(() {
-                        if (value == true) {
-                          _selectedSkills.add(skill);
-                        } else {
-                          _selectedSkills.remove(skill);
+                        if (selected != null) {
+                          if (selected) {
+                            _selectedSkills.add(skill);
+                          } else {
+                            _selectedSkills.remove(skill);
+                          }
                         }
                       });
                     },
                   );
-                },
+                }).toList(),
               ),
             ),
-
-            // Save Button
             ElevatedButton(
-              onPressed: _saveToFirestore,
-              child: const Text('Save'),
+              onPressed: _saveSkills,
+              child: const Text('Save and Continue'),
             ),
           ],
         ),
