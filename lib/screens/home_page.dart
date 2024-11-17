@@ -128,7 +128,6 @@ class _HomePageState extends State<HomePage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          // Chats Button
                           ElevatedButton(
                             onPressed: () {
                               setState(() {
@@ -145,7 +144,6 @@ class _HomePageState extends State<HomePage> {
                               minimumSize: const Size(120, 48),
                             ),
                           ),
-                          // Requests Button
                           ElevatedButton(
                             onPressed: () {
                               setState(() {
@@ -162,7 +160,6 @@ class _HomePageState extends State<HomePage> {
                               minimumSize: const Size(120, 48),
                             ),
                           ),
-                          // Network Button
                           ElevatedButton(
                             onPressed: () {
                               setState(() {
@@ -209,7 +206,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      // Action Button with similar styling
                       SizedBox(
                         width: double.infinity,
                         height: 48,
