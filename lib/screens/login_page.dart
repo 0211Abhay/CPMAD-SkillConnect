@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:skillconnect_app/screens/register_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get_storage/get_storage.dart'; // Import GetStorage
 import 'package:skillconnect_app/screens/home_page.dart';
-import 'user_skill_page.dart'; // Import your home screen
+import 'package:skillconnect_app/screens/register_page.dart';
+import 'package:skillconnect_app/screens/user_skill_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -17,6 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool isLoading = false;
+  final GetStorage _storage = GetStorage(); // Initialize GetStorage
 
   @override
   void dispose() {
@@ -32,6 +35,50 @@ class _LoginPageState extends State<LoginPage> {
         builder: (context) => const RegisterPage(),
       ),
     );
+  }
+
+  void _navigateToHome() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HomePage(),
+      ),
+    );
+  }
+
+  // Check if the user has completed their profile and store data in GetStorage
+  Future<void> _checkUserProfile(String userId) async {
+    final userDoc =
+        await FirebaseFirestore.instance.collection('Users').doc(userId).get();
+
+    if (userDoc.exists) {
+      final data = userDoc.data();
+      if (data != null) {
+        // Store user data in GetStorage
+        _storage.write('userId', userId);
+        _storage.write('email', data['email'] ?? '');
+        _storage.write('first_name', data['first_name'] ?? '');
+        _storage.write('last_name', data['last_name'] ?? '');
+        _storage.write('phone', data['phone'] ?? '');
+        _storage.write('profileCompleted', data['profileCompleted'] ?? false);
+        _storage.write('skills', data['skills'] ?? []);
+
+        bool isProfileCompleted = data['profileCompleted'] ?? false;
+
+        if (!isProfileCompleted) {
+          // Navigate to the UserSkillsPage for incomplete profile
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UserSkillsPage(uid: userId, phone: data['phone']),
+            ),
+          );
+        } else {
+          // Navigate to HomePage for complete profile
+          _navigateToHome();
+        }
+      }
+    }
   }
 
   String? _validateEmail(String? value) {
@@ -55,29 +102,26 @@ class _LoginPageState extends State<LoginPage> {
     return null;
   }
 
-Future<void> _login() async {
-  if (!_formKey.currentState!.validate()) return;
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() {
-    isLoading = true;
-  });
+    setState(() {
+      isLoading = true;
+    });
 
-  try {
-    // Firebase authentication login
-    UserCredential userCredential = await FirebaseAuth.instance
-        .signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
-    // Navigate to HomePage if login is successful
-    if (userCredential.user != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const UserSkillsPage()),
+    try {
+      // Firebase authentication login
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
       // Check if login is successful
       if (userCredential.user != null) {
-        // Redirect to the home screen or any other screen after successful login
-        Navigator.pushReplacementNamed(context, '/home');
+        String userId = userCredential.user!.uid;
+        // Check if the user's profile is complete and store details in GetStorage
+        await _checkUserProfile(userId);
       }
     } on FirebaseAuthException catch (e) {
       // Show error message in case of failure
@@ -85,19 +129,12 @@ Future<void> _login() async {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage)),
       );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
-  } on FirebaseAuthException catch (e) {
-    // Show error message if login fails
-    String errorMessage = e.message ?? 'Login failed';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(errorMessage)),
-    );
-  } finally {
-    setState(() {
-      isLoading = false;
-    });
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +217,8 @@ Future<void> _login() async {
                               ),
                               child: isLoading
                                   ? const CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                     )
                                   : const Text(
                                       'Login',
